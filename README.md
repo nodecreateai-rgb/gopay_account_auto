@@ -45,52 +45,83 @@ pip install -r requirements.txt
 
 ## 配置说明
 
-复制配置模板并填写必要信息：
+**敏感项与注册参数优先从环境变量读取**（与 `gpt_plus` 的 `HERO_SMS_*` / `PROXY` 命名兼容），`config.yaml` 仅作非敏感项补充。
 
 ```bash
 cp config.example.yaml config.yaml
+cp .env.example .env
+# 编辑 .env 填入密钥，勿提交 .env
 ```
 
-编辑 `config.yaml`，填写以下配置：
+### 环境变量（推荐）
 
-### 1. hero-sms 接码配置
+| 变量 | 必填 | 说明 |
+|------|------|------|
+| `HERO_SMS_API_KEY` | 是 | Hero-SMS API Key（别名：`GOPAY_HERO_SMS_API_KEY`） |
+| `GOPAY_PROXY` | 是 | HTTP 代理，须为**印尼 IP**（别名：`PROXY`） |
+| `GOPAY_SIGNUP_PIN` | 否 | 注册/登录 PIN，默认 `123456`（别名：`GOPAY_DEFAULT_PIN`） |
+| `GOPAY_SIGNUP_COUNTRY_CODE` | 否 | 国家码，默认 `+62`（别名：`GOPAY_COUNTRY_CODE`） |
+| `HERO_SMS_SERVICE` | 否 | 接码服务码，默认 `ni` |
+| `HERO_SMS_COUNTRY` | 否 | 接码国家 ID，默认 `6`（印尼） |
+| `HERO_SMS_POLL_TIMEOUT_SEC` | 否 | 等码超时（秒），默认 `300` |
+| `HERO_SMS_ENABLED` | 否 | `true` / `false`，默认 `true` |
 
-```yaml
-hero_sms:
-  enabled: true
-  api_key: "YOUR_HERO_SMS_API_KEY"  # 在 hero-sms.com 获取
-  base_url: "https://api.hero-sms.com"
-  country: 6  # 印尼
-  service: "ni"  # GoPay 服务代码
-  poll_timeout_sec: 300
+一次性加载（zsh/bash）：
+
+```bash
+set -a
+source .env
+set +a
 ```
 
-### 2. 代理配置
+或逐条 export：
 
-GoPay 注册需要印尼 IP：
-
-```yaml
-proxy: "http://your-indonesia-proxy:port"  # 印尼代理地址
+```bash
+export HERO_SMS_API_KEY="你的key"
+export GOPAY_PROXY="http://127.0.0.1:10808"
+export GOPAY_SIGNUP_PIN="123456"
+export GOPAY_SIGNUP_COUNTRY_CODE="+62"
 ```
 
-### 3. 红包配置
+### config.yaml（可选）
+
+用于红包开关、`hero_sms` 的 `service` / `country` 等非敏感项。未设置环境变量时，仍可从 yaml 回退读取 `api_key`、`proxy`、`signup`（不推荐把密钥写在文件里）。
+
+### 红包配置（仅 yaml）
 
 ```yaml
 account_pay:
   GoPay:
     festival_envelope:
       enabled: true
-      short_link: "https://gopay.co.id/xxx"  # 红包短链
-    
-    signup:
-      default_pin: "123456"  # 默认 PIN 码（可自定义）
-      country_code: "+62"  # 印尼国家代码
+      short_link: "https://gopay.co.id/xxx"
 ```
 
 ## 使用方法
 
+### CLI
+
 ```bash
 python main.py
+```
+
+### HTTP API（FastAPI）
+
+先加载环境变量（见上文），再启动服务：
+
+```bash
+uvicorn api:app --host 0.0.0.0 --port 8000
+```
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/health` | 健康检查 |
+| GET | `/register` | 同步执行取号 + GoPay 注册/登录（可能 5–10 分钟，客户端需加大超时） |
+
+示例：
+
+```bash
+curl --max-time 900 "http://127.0.0.1:8000/register"
 ```
 
 ## 输出示例

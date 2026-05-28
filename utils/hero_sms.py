@@ -24,11 +24,27 @@ logger = logging.getLogger(__name__)
 
 # 状态常量
 STATUS_READY = 1       # 标记就绪（准备接码）
-STATUS_CANCEL = -1     # 取消激活
+STATUS_CANCEL = 8      # 取消激活（hero-sms 当前 API）
 STATUS_RESEND = 3      # 请求重发
 STATUS_FINISH = 6      # 完成（确认收到码）
 
 POLL_INTERVAL_SEC = 3.0
+RESEND_AFTER_SEC = 60
+DEFAULT_OPERATOR = "any"
+DEFAULT_MAX_PRICE = "0.045"  # GoPay 印尼 ni 固定出价
+
+_FATAL_ERRORS = frozenset(
+    {
+        "BAD_KEY",
+        "BAD_ACTION",
+        "BAD_SERVICE",
+        "WRONG_SERVICE",
+        "WRONG_COUNTRY",
+        "NO_BALANCE",
+        "NO_NUMBERS",
+        "ERROR_SQL",
+    }
+)
 
 
 class HeroSmsError(RuntimeError):
@@ -69,6 +85,8 @@ def _request(
 
     if not (200 <= code < 300):
         return False, text or f"HTTP {code}", data
+    if text.upper() in _FATAL_ERRORS:
+        return False, text, data
     return True, text, data
 
 
@@ -126,18 +144,26 @@ def get_number(
     country_id: int,
     base_url: str,
     api_key: str,
-    max_price: float = 10.0,
     log: Callable[[str], None] = logger.info,
 ) -> tuple[str, str, str]:
     """购买号码
 
     返回: (activation_id, phone, error)
     """
+    log(
+        f"[hero-sms] getNumber service={service_code} country={country_id} "
+        f"operator={DEFAULT_OPERATOR} maxPrice={DEFAULT_MAX_PRICE}"
+    )
     ok, text, data = _request(
         base_url,
         api_key,
         "getNumber",
-        {"service": service_code, "country": country_id},
+        {
+            "service": service_code,
+            "country": country_id,
+            "operator": DEFAULT_OPERATOR,
+            "maxPrice": DEFAULT_MAX_PRICE,
+        },
         timeout=30,
     )
 

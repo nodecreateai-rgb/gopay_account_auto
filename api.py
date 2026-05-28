@@ -1,0 +1,41 @@
+"""GoPay 自动注册 HTTP API（FastAPI）。"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+
+from utils.config_error import ConfigError
+from utils.runner import run_gopay_register
+from utils.settings import load_settings
+
+ROOT_DIR = Path(__file__).resolve().parent
+
+app = FastAPI(
+    title="GoPay Account Auto API",
+    description="GET /register 触发 hero-sms 取号并完成 GoPay 注册/登录",
+    version="1.0.0",
+)
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/register")
+def register_gopay() -> JSONResponse:
+    """取号并注册 GoPay（同步执行，可能耗时数分钟）。"""
+    try:
+        settings = load_settings(ROOT_DIR)
+    except ConfigError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    if not settings["hero_enabled"]:
+        raise HTTPException(status_code=400, detail="hero-sms 未启用")
+
+    result = run_gopay_register(settings)
+    status = 200 if result.get("ok") else 500
+    return JSONResponse(content=result, status_code=status)
