@@ -110,7 +110,8 @@ python main.py
 先加载环境变量（见上文），再启动服务：
 
 ```bash
-uvicorn api:app --host 0.0.0.0 --port 8000
+python api.py
+# 或: uvicorn api:app --host 0.0.0.0 --port 28000
 ```
 
 | 方法 | 路径 | 说明 |
@@ -121,7 +122,7 @@ uvicorn api:app --host 0.0.0.0 --port 8000
 示例：
 
 ```bash
-curl --max-time 900 "http://127.0.0.1:8000/register"
+curl --max-time 900 "http://127.0.0.1:28000/register"
 ```
 
 ## 输出示例

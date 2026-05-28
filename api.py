@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
+
+DEFAULT_API_PORT = 28000
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -39,3 +42,10 @@ def register_gopay() -> JSONResponse:
     result = run_gopay_register(settings)
     status = 200 if result.get("ok") else 500
     return JSONResponse(content=result, status_code=status)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.environ.get("GOPAY_API_PORT", DEFAULT_API_PORT))
+    uvicorn.run("api:app", host="0.0.0.0", port=port, reload=False)
