@@ -20,6 +20,7 @@ DEFAULT_HANDLER_URL = "https://api.grizzlysms.com/stubs/handler_api.php"
 DEFAULT_OPERATOR = "any"
 DEFAULT_MAX_PRICE = "0.045"
 
+STATUS_READY = 1
 STATUS_CANCEL = 8
 STATUS_RESEND = 3
 STATUS_FINISH = 6
@@ -39,12 +40,23 @@ _FATAL_ERRORS = frozenset(
     }
 )
 
-_PHONE_CODE_RE = re.compile(r"\b([0-9]{4,8})\b")
+_GOPAY_OTP_RE = re.compile(r"\b(\d{6})\b")
 
 
-def _extract_code(value: str) -> str:
-    match = _PHONE_CODE_RE.search(value or "")
-    return match.group(1) if match else (value.split(":", 1)[1].strip() if ":" in value else "")
+def _extract_otp(value: str) -> str:
+    """从 Grizzly STATUS_OK 或短信正文中提取 GoPay 6 位验证码。"""
+    text = str(value or "").strip()
+    if text.upper().startswith("STATUS_OK:"):
+        text = text.split(":", 1)[1].strip()
+
+    matches = _GOPAY_OTP_RE.findall(text)
+    if matches:
+        return matches[-1]
+
+    digits = re.sub(r"\D", "", text)
+    if len(digits) >= 6:
+        return digits[-6:]
+    return ""
 
 
 def _request(
@@ -182,13 +194,20 @@ class SmsActivation:
                 continue
 
             line = str(text or "").strip()
+            upper = line.upper()
             code = ""
-            if line.upper().startswith("STATUS_OK:"):
-                code = _extract_code(line)
+            if upper.startswith("STATUS_OK:"):
+                code = _extract_otp(line)
             elif isinstance(data, dict):
-                code = str(data.get("code") or data.get("sms") or "")
+                raw = str(data.get("code") or data.get("sms") or "")
+                code = _extract_otp(raw) or raw.strip()
+
+            if upper.startswith("STATUS_WAIT") or upper == "STATUS_WAIT_CODE":
+                time.sleep(POLL_INTERVAL_SEC)
+                continue
 
             if code and code not in self.used_codes:
+                self.log(f"[{label}] Grizzly 收到验证码: {code}")
                 self.used_codes.add(code)
                 return code
 

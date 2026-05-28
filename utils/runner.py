@@ -10,7 +10,13 @@ import requests
 
 from utils.gopay.account import GoPayAccountError, auto_signup
 from utils.gopay.charger import GoPayCharger, GoPayError
-from utils.grizzly_sms import SmsActivation, get_number, set_status, STATUS_RESEND
+from utils.grizzly_sms import (
+    SmsActivation,
+    get_number,
+    set_status,
+    STATUS_READY,
+    STATUS_RESEND,
+)
 
 _RETRY_KEYWORDS = (
     "已注册",
@@ -66,6 +72,9 @@ def _attempt_signup_with_number(
 
     phone = _normalize_phone(phone_raw)
     log(f"取到号码: +62{phone} (activation_id={activation_id})")
+
+    set_status(sms_base_url, sms_api_key, activation_id, STATUS_READY)
+    log("[grizzly-sms] 已标记就绪 (status=1)")
 
     sms_activation = SmsActivation(
         activation_id=activation_id,

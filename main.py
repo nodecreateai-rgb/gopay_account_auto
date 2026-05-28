@@ -1,50 +1,22 @@
-"""GoPay Account Auto - CLI 入口"""
+"""应用入口：仅启动 HTTP API。
 
-import sys
-from pathlib import Path
+Dokploy / Docker 默认执行 `python main.py` 时只拉起服务，
+注册流程由 GET /register 触发。手动注册请用: python cli.py
+"""
 
-ROOT_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT_DIR))
+from __future__ import annotations
 
-from utils.config_error import ConfigError
-from utils.runner import run_gopay_register
-from utils.settings import load_settings
+import os
 
 
 def main() -> None:
-    try:
-        settings = load_settings(ROOT_DIR)
-    except ConfigError as e:
-        print(f"[错误] {e}")
-        sys.exit(1)
+    import uvicorn
 
-    print(f"使用代理: {settings['proxy']}")
-    print(f"红包配置: enabled={settings['festival_enabled']}")
-    print(f"GrizzlySMS: enabled={settings['sms_enabled']}")
-    print(
-        f"sms: service={settings['sms_service']} country={settings['sms_country']} "
-        f"maxPrice={settings['sms_max_price']}"
-    )
-    print(f"signup: pin=****** country={settings['country_code']}")
+    from api import DEFAULT_API_PORT
 
-    if not settings["sms_enabled"]:
-        print("\n[跳过] GrizzlySMS 未启用，无法自动取号")
-        sys.exit(0)
-
-    result = run_gopay_register(settings, log=print)
-    if not result.get("ok"):
-        print(f"\n[失败] {result.get('error')}")
-        sys.exit(1)
-
-    print("\n" + "=" * 60)
-    print("流程完成")
-    print(f"mode: {result.get('mode')}")
-    print(f"phone: {result.get('phone_display')}")
-    print(f"pin: {result.get('pin')}")
-    print(f"access_token: {str(result.get('access_token', ''))[:30]}...")
-    if result.get("festival"):
-        print(f"festival: {result['festival']}")
-    print("=" * 60)
+    port = int(os.environ.get("GOPAY_API_PORT", DEFAULT_API_PORT))
+    print(f"[gopay-account-auto] 启动 API :{port}（注册请请求 GET /register）")
+    uvicorn.run("api:app", host="0.0.0.0", port=port, reload=False)
 
 
 if __name__ == "__main__":

@@ -74,6 +74,40 @@ def _has_error_code(resp_json: dict, code: str) -> bool:
     return False
 
 
+_REGISTERED_PROBE_CODES = (
+    "auth:error:user:already_exists",
+    "auth:error:user:exists",
+    "auth:error:user:registered",
+)
+
+
+def _probe_allows_signup(data: dict, status_code: int, log: Callable[[str], None]) -> None:
+    """判断手机号是否未注册；仅在有明确「已注册」证据时阻断。"""
+    if _has_error_code(data, "auth:error:user:not_found"):
+        log("[gopay-signup] 探测: 号码未注册，可继续")
+        return
+
+    for code in _REGISTERED_PROBE_CODES:
+        if _has_error_code(data, code):
+            raise GoPayAccountError("号码已注册")
+
+    payload = data.get("data")
+    if isinstance(payload, dict):
+        accounts = payload.get("account_list") or payload.get("accounts")
+        if accounts:
+            raise GoPayAccountError("号码已注册")
+
+    if status_code >= 500:
+        raise GoPayAccountError(f"探测服务端错误: {status_code}")
+
+    errors = _extract_errors(data)
+    if errors:
+        codes = [str(e.get("code") or "") for e in errors if isinstance(e, dict)]
+        log(f"[gopay-signup] 探测: 非 not_found 响应，继续尝试注册 codes={codes}")
+    else:
+        log("[gopay-signup] 探测: 无错误体，继续尝试注册")
+
+
 def auto_login(
     phone: str,
     country_code: str = "+62",
@@ -276,8 +310,8 @@ def auto_signup(
         gopay_cfg=cfg, session=session,
     )
     data = _safe_json(resp) if resp.status_code < 500 else {}
-    if not _has_error_code(data, "auth:error:user:not_found"):
-        raise GoPayAccountError(f"号码已注册或探测异常")
+    log(f"[gopay-signup] 探测 resp={resp.status_code} body={resp.text[:200]}")
+    _probe_allows_signup(data, resp.status_code, log)
 
     time.sleep(random.uniform(1.5, 3.0))
     log("[gopay-signup] 触发注册 SMS OTP")
@@ -321,10 +355,11 @@ def auto_signup(
     if not otp_token:
         raise GoPayAccountError(f"signup initiate 未返回 otp_token: {resp.text[:300]}")
 
-    log(f"[gopay-signup] 等待注册 SMS OTP...")
+    log("[gopay-signup] 等待注册 SMS OTP...")
     otp = otp_provider("gopay_signup")
     if not otp:
-        raise GoPayAccountError("注册 OTP 未提供")
+        raise GoPayAccountError("注册 OTP 未提供（Grizzly 未返回或未解析到 6 位验证码）")
+    log(f"[gopay-signup] 提交注册 OTP: {otp}")
 
     resp = signed_post(
         f"{BASE_URL}/cvs/v1/verify",

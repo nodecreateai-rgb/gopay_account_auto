@@ -9,6 +9,8 @@ COPY . .
 
 ENV GOPAY_API_PORT=28000
 
-# 仅启动 API；注册由 GET /register 触发，不在启动时执行
+# Dokploy 默认 python main.py → 仅启动 API，不自动注册
 EXPOSE 28000
-CMD ["python", "api.py"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:28000/health')" || exit 1
+CMD ["python", "main.py"]

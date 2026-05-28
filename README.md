@@ -105,10 +105,16 @@ account_pay:
 
 ## 使用方法
 
-### CLI
+### CLI（本地手动注册）
 
 ```bash
-python main.py
+python cli.py
+```
+
+### 应用入口（Dokploy / Docker）
+
+```bash
+python main.py   # 仅启动 API，不会自动注册
 ```
 
 ### HTTP API（FastAPI）
@@ -120,7 +126,7 @@ python api.py
 # 或: uvicorn api:app --host 0.0.0.0 --port 28000
 ```
 
-Docker 请使用 `python api.py` 或本仓库 `Dockerfile`，**不要用 `python main.py` 作为容器入口**（`main.py` 会立即跑一轮 CLI 注册）。
+**Dokploy 部署**：启动命令设为 `python main.py`（或留空使用 Dockerfile 默认 CMD）。**不要**用 `python cli.py`。注册仅通过 `GET /register` 触发。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
