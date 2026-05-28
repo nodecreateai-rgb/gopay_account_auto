@@ -18,8 +18,8 @@ ROOT_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(
     title="GoPay Account Auto API",
-    description="GET /register 触发 hero-sms 取号并完成 GoPay 注册/登录",
-    version="1.0.0",
+    description="仅 GET /register 会触发注册；服务启动不会自动注册",
+    version="1.0.1",
 )
 
 

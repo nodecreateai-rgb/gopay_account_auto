@@ -14,6 +14,7 @@ DEFAULT_HERO_BASE_URL = "https://hero-sms.com/stubs/handler_api.php"
 DEFAULT_PROXY = "http://127.0.0.1:10808"
 DEFAULT_SIGNUP_PIN = "123456"
 DEFAULT_COUNTRY_CODE = "+62"
+DEFAULT_REGISTER_RETRY = 3
 
 
 def _env(*names: str) -> str:
@@ -83,8 +84,17 @@ def load_settings(root_dir: Path | None = None) -> dict[str, Any]:
     ):
         hero_enabled = True
 
+    raw_retry = _env("GOPAY_REGISTER_RETRY", "GOPAY_NUMBER_RETRY") or str(
+        cfg.get("register_retry") or DEFAULT_REGISTER_RETRY
+    )
+    try:
+        register_retry = max(1, min(20, int(raw_retry)))
+    except (TypeError, ValueError):
+        register_retry = DEFAULT_REGISTER_RETRY
+
     return {
         "proxy": proxy,
+        "register_retry": register_retry,
         "hero_api_key": hero_api_key,
         "hero_base_url": _env("HERO_SMS_HANDLER_URL", "HERO_SMS_BASE_URL")
         or str(hero_cfg.get("base_url") or DEFAULT_HERO_BASE_URL),

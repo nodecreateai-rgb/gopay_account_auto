@@ -65,6 +65,8 @@ cp .env.example .env
 | `HERO_SMS_COUNTRY` | 否 | 接码国家 ID，默认 `6`（印尼） |
 | `HERO_SMS_POLL_TIMEOUT_SEC` | 否 | 等码超时（秒），默认 `300` |
 | `HERO_SMS_ENABLED` | 否 | `true` / `false`，默认 `true` |
+| `GOPAY_REGISTER_RETRY` | 否 | 取号失败、号码已注册、限流等时换号重试次数，默认 `3`（别名 `GOPAY_NUMBER_RETRY`） |
+| `GOPAY_API_PORT` | 否 | API 端口，默认 `28000` |
 
 一次性加载（zsh/bash）：
 
@@ -107,12 +109,14 @@ python main.py
 
 ### HTTP API（FastAPI）
 
-先加载环境变量（见上文），再启动服务：
+先加载环境变量（见上文），再启动服务。**启动后不会自动注册**，仅访问接口时执行：
 
 ```bash
 python api.py
 # 或: uvicorn api:app --host 0.0.0.0 --port 28000
 ```
+
+Docker 请使用 `python api.py` 或本仓库 `Dockerfile`，**不要用 `python main.py` 作为容器入口**（`main.py` 会立即跑一轮 CLI 注册）。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
