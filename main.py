@@ -14,8 +14,19 @@ def main() -> None:
 
     from api import DEFAULT_API_PORT
 
-    port = int(os.environ.get("GOPAY_API_PORT", DEFAULT_API_PORT))
-    print(f"[gopay-account-auto] 启动 API :{port}（注册请请求 GET /register）")
+    port = int(
+        os.environ.get("PORT")
+        or os.environ.get("GOPAY_API_PORT")
+        or DEFAULT_API_PORT
+    )
+    print(
+        f"[gopay-account-auto] 监听 0.0.0.0:{port} | "
+        f"健康检查 GET /health | 注册 GET /register"
+    )
+    print(
+        "[提示] Dokploy 请在 Domains 里绑定域名并填容器端口 "
+        f"{port}；或用 Advanced→Ports 映射 宿主机端口→{port}"
+    )
     uvicorn.run("api:app", host="0.0.0.0", port=port, reload=False)
 
 

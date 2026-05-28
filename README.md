@@ -126,7 +126,7 @@ python api.py
 # 或: uvicorn api:app --host 0.0.0.0 --port 28000
 ```
 
-**Dokploy 部署**：启动命令设为 `python main.py`（或留空使用 Dockerfile 默认 CMD）。**不要**用 `python cli.py`。注册仅通过 `GET /register` 触发。
+**Dokploy 部署**：详见 [DOKPLOY.md](DOKPLOY.md)。启动命令 `python main.py`；在 **Domains** 里把容器端口设为 **28000**，或在 **Advanced → Ports** 映射 `28000:28000`，否则外网 `IP:28000` 访问不到（容器内已启动≠已暴露）。
 
 | 方法 | 路径 | 说明 |
 |------|------|------|

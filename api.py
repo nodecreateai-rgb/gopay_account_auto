@@ -23,6 +23,15 @@ app = FastAPI(
 )
 
 
+@app.get("/")
+def root() -> dict[str, str]:
+    return {
+        "service": "gopay-account-auto",
+        "health": "/health",
+        "register": "/register",
+    }
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
