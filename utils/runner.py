@@ -10,7 +10,7 @@ import requests
 
 from utils.gopay.account import GoPayAccountError, auto_signup
 from utils.gopay.charger import GoPayCharger, GoPayError
-from utils.hero_sms import SmsActivation, get_number, set_status, STATUS_RESEND
+from utils.grizzly_sms import SmsActivation, get_number, set_status, STATUS_RESEND
 
 _RETRY_KEYWORDS = (
     "已注册",
@@ -42,8 +42,8 @@ def _attempt_signup_with_number(
 ) -> dict[str, Any]:
     """单次：取号并尝试注册新账号（不走登录兜底）。"""
     proxy = settings["proxy"]
-    hero_api_key = settings["hero_api_key"]
-    hero_base_url = settings["hero_base_url"]
+    sms_api_key = settings["sms_api_key"]
+    sms_base_url = settings["sms_base_url"]
     signup_pin = settings["signup_pin"]
     country_code = settings["country_code"]
     sms_timeout = settings["sms_timeout"]
@@ -51,8 +51,9 @@ def _attempt_signup_with_number(
     activation_id, phone_raw, err = get_number(
         service_code=settings["sms_service"],
         country_id=settings["sms_country"],
-        base_url=hero_base_url,
-        api_key=hero_api_key,
+        base_url=sms_base_url,
+        api_key=sms_api_key,
+        max_price=settings["sms_max_price"],
         log=log,
     )
     if not activation_id:
@@ -70,8 +71,8 @@ def _attempt_signup_with_number(
         activation_id=activation_id,
         phone=phone_raw,
         country_id=settings["sms_country"],
-        base_url=hero_base_url,
-        api_key=hero_api_key,
+        base_url=sms_base_url,
+        api_key=sms_api_key,
         log=log,
     )
 
@@ -91,7 +92,7 @@ def _attempt_signup_with_number(
     shared_gopay_cfg: dict[str, Any] = {}
 
     def reactivate_before_pin() -> None:
-        set_status(hero_base_url, hero_api_key, activation_id, STATUS_RESEND)
+        set_status(sms_base_url, sms_api_key, activation_id, STATUS_RESEND)
         log("  [pre-pin] reactivate SMS (status=3)")
 
     try:
@@ -214,8 +215,8 @@ def run_gopay_register(
         if log:
             log(msg)
 
-    if not settings.get("hero_enabled"):
-        return {"ok": False, "error": "hero-sms 未启用"}
+    if not settings.get("sms_enabled"):
+        return {"ok": False, "error": "GrizzlySMS 未启用"}
 
     max_attempts = int(settings.get("register_retry") or 3)
     _log(f"使用代理: {settings['proxy']}")
@@ -227,7 +228,7 @@ def run_gopay_register(
 
     for attempt in range(1, max_attempts + 1):
         _log(f"\n--- 第 {attempt}/{max_attempts} 次取号注册 ---")
-        _log("Step 1: hero-sms 取号")
+        _log("Step 1: GrizzlySMS 取号")
 
         outcome = _attempt_signup_with_number(settings, _log)
         if outcome.get("ok"):

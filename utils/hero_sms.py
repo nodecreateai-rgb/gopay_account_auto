@@ -1,4 +1,5 @@
-"""Hero-SMS 接码服务客户端（简化版）
+"""Hero-SMS 接码客户端（已弃用，请使用 utils.grizzly_sms）。
+
 
 核心功能：
 - get_number: 购买号码

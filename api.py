@@ -18,7 +18,7 @@ ROOT_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(
     title="GoPay Account Auto API",
-    description="仅 GET /register 会触发注册；服务启动不会自动注册",
+    description="GET /register 触发 GrizzlySMS 取号并注册 GoPay；启动时不自动注册",
     version="1.0.1",
 )
 
@@ -36,8 +36,8 @@ def register_gopay() -> JSONResponse:
     except ConfigError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 
-    if not settings["hero_enabled"]:
-        raise HTTPException(status_code=400, detail="hero-sms 未启用")
+    if not settings["sms_enabled"]:
+        raise HTTPException(status_code=400, detail="GrizzlySMS 未启用")
 
     result = run_gopay_register(settings)
     status = 200 if result.get("ok") else 500

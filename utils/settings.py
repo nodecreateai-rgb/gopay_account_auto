@@ -10,11 +10,14 @@ import yaml
 
 from utils.config_error import ConfigError
 
-DEFAULT_HERO_BASE_URL = "https://hero-sms.com/stubs/handler_api.php"
+DEFAULT_GRIZZLY_HANDLER_URL = "https://api.grizzlysms.com/stubs/handler_api.php"
 DEFAULT_PROXY = "http://127.0.0.1:10808"
 DEFAULT_SIGNUP_PIN = "123456"
 DEFAULT_COUNTRY_CODE = "+62"
 DEFAULT_REGISTER_RETRY = 3
+DEFAULT_SMS_SERVICE = "ni"  # GoPay 印尼
+DEFAULT_SMS_COUNTRY = 6
+DEFAULT_SMS_MAX_PRICE = "0.045"
 
 
 def _env(*names: str) -> str:
@@ -44,12 +47,13 @@ def load_settings(root_dir: Path | None = None) -> dict[str, Any]:
 
     gopay_section = (cfg.get("account_pay") or {}).get("GoPay") or {}
     festival_cfg = gopay_section.get("festival_envelope") or {}
-    hero_cfg = cfg.get("hero_sms") or {}
     signup_cfg = gopay_section.get("signup") or {}
+    # yaml：优先 grizzly_sms，兼容旧 hero_sms 段
+    sms_cfg = cfg.get("grizzly_sms") or cfg.get("hero_sms") or {}
 
     proxy = _env("GOPAY_PROXY", "PROXY") or str(cfg.get("proxy") or DEFAULT_PROXY)
-    hero_api_key = _env("HERO_SMS_API_KEY", "GOPAY_HERO_SMS_API_KEY") or str(
-        hero_cfg.get("api_key") or ""
+    sms_api_key = _env("GRIZZLY_SMS_API_KEY", "CPA_GRIZZLY_SMS_API_KEY") or str(
+        sms_cfg.get("api_key") or ""
     )
     signup_pin = _env("GOPAY_SIGNUP_PIN", "GOPAY_DEFAULT_PIN") or str(
         signup_cfg.get("default_pin") or DEFAULT_SIGNUP_PIN
@@ -59,30 +63,21 @@ def load_settings(root_dir: Path | None = None) -> dict[str, Any]:
     )
 
     proxy = _require(proxy, "代理", ("GOPAY_PROXY", "PROXY"))
-    hero_api_key = _require(
-        hero_api_key,
-        "Hero-SMS API Key",
-        ("HERO_SMS_API_KEY", "GOPAY_HERO_SMS_API_KEY"),
+    sms_api_key = _require(
+        sms_api_key,
+        "GrizzlySMS API Key",
+        ("GRIZZLY_SMS_API_KEY", "CPA_GRIZZLY_SMS_API_KEY"),
     )
 
     if not country_code.startswith("+"):
         country_code = f"+{country_code}"
 
-    hero_enabled = hero_cfg.get("enabled", True)
-    if _env("HERO_SMS_ENABLED", "GOPAY_HERO_SMS_ENABLED").lower() in (
-        "0",
-        "false",
-        "no",
-        "off",
-    ):
-        hero_enabled = False
-    elif _env("HERO_SMS_ENABLED", "GOPAY_HERO_SMS_ENABLED").lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    ):
-        hero_enabled = True
+    sms_enabled = sms_cfg.get("enabled", True)
+    enabled_env = _env("GRIZZLY_SMS_ENABLED", "GOPAY_SMS_ENABLED")
+    if enabled_env.lower() in ("0", "false", "no", "off"):
+        sms_enabled = False
+    elif enabled_env.lower() in ("1", "true", "yes", "on"):
+        sms_enabled = True
 
     raw_retry = _env("GOPAY_REGISTER_RETRY", "GOPAY_NUMBER_RETRY") or str(
         cfg.get("register_retry") or DEFAULT_REGISTER_RETRY
@@ -92,23 +87,30 @@ def load_settings(root_dir: Path | None = None) -> dict[str, Any]:
     except (TypeError, ValueError):
         register_retry = DEFAULT_REGISTER_RETRY
 
+    sms_max_price = (
+        _env("GRIZZLY_SMS_MAX_PRICE", "CPA_GRIZZLY_SMS_MAX_PRICE", "GOPAY_SMS_MAX_PRICE")
+        or str(sms_cfg.get("max_price") or DEFAULT_SMS_MAX_PRICE)
+    )
+
     return {
         "proxy": proxy,
         "register_retry": register_retry,
-        "hero_api_key": hero_api_key,
-        "hero_base_url": _env("HERO_SMS_HANDLER_URL", "HERO_SMS_BASE_URL")
-        or str(hero_cfg.get("base_url") or DEFAULT_HERO_BASE_URL),
-        "hero_enabled": bool(hero_enabled),
-        "sms_service": _env("HERO_SMS_SERVICE", "GOPAY_HERO_SMS_SERVICE")
-        or str(hero_cfg.get("service") or "ni"),
+        "sms_provider": "grizzly_sms",
+        "sms_api_key": sms_api_key,
+        "sms_base_url": _env("GRIZZLY_SMS_HANDLER_URL", "GRIZZLY_SMS_BASE_URL")
+        or str(sms_cfg.get("base_url") or DEFAULT_GRIZZLY_HANDLER_URL),
+        "sms_enabled": bool(sms_enabled),
+        "sms_service": _env("GRIZZLY_SMS_SERVICE", "GOPAY_SMS_SERVICE")
+        or str(sms_cfg.get("service") or DEFAULT_SMS_SERVICE),
         "sms_country": int(
-            _env("HERO_SMS_COUNTRY", "GOPAY_HERO_SMS_COUNTRY")
-            or hero_cfg.get("country")
-            or 6
+            _env("GRIZZLY_SMS_COUNTRY", "GOPAY_SMS_COUNTRY")
+            or sms_cfg.get("country")
+            or DEFAULT_SMS_COUNTRY
         ),
+        "sms_max_price": sms_max_price,
         "sms_timeout": int(
-            _env("HERO_SMS_POLL_TIMEOUT_SEC", "GOPAY_SMS_POLL_TIMEOUT_SEC")
-            or hero_cfg.get("poll_timeout_sec")
+            _env("GRIZZLY_SMS_POLL_TIMEOUT_SEC", "GRIZZLY_SMS_WAIT_SECONDS", "GOPAY_SMS_POLL_TIMEOUT_SEC")
+            or sms_cfg.get("poll_timeout_sec")
             or 300
         ),
         "signup_pin": signup_pin,

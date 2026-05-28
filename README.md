@@ -27,14 +27,14 @@
 
 ## 流程说明
 
-1. **SMS 取号**：通过 hero-sms 接码平台获取印尼手机号
+1. **SMS 取号**：通过 GrizzlySMS 获取印尼手机号（GoPay 服务码 `ni`）
 2. **注册/登录**：使用手机号注册新钱包或登录已有账号
 3. **领取红包**：自动解析短链并领取节日红包
 
 ## 环境要求
 
 - Python 3.8+
-- hero-sms 接码平台账号（需充值）
+- GrizzlySMS 接码平台账号（需充值，[grizzlysms.com](https://grizzlysms.com)）
 - 印尼 IP 代理（用于注册和 API 调用）
 
 ## 安装依赖
@@ -45,7 +45,7 @@ pip install -r requirements.txt
 
 ## 配置说明
 
-**敏感项与注册参数优先从环境变量读取**（与 `gpt_plus` 的 `HERO_SMS_*` / `PROXY` 命名兼容），`config.yaml` 仅作非敏感项补充。
+**敏感项与注册参数优先从环境变量读取**（与 `gpt_plus` 的 `GRIZZLY_SMS_*` / `PROXY` 命名一致），`config.yaml` 仅作非敏感项补充。
 
 ```bash
 cp config.example.yaml config.yaml
@@ -57,15 +57,16 @@ cp .env.example .env
 
 | 变量 | 必填 | 说明 |
 |------|------|------|
-| `HERO_SMS_API_KEY` | 是 | Hero-SMS API Key（别名：`GOPAY_HERO_SMS_API_KEY`） |
+| `GRIZZLY_SMS_API_KEY` | 是 | GrizzlySMS API Key（别名：`CPA_GRIZZLY_SMS_API_KEY`） |
 | `GOPAY_PROXY` | 是 | HTTP 代理，须为**印尼 IP**（别名：`PROXY`） |
-| `GOPAY_SIGNUP_PIN` | 否 | 注册/登录 PIN，默认 `123456`（别名：`GOPAY_DEFAULT_PIN`） |
+| `GOPAY_SIGNUP_PIN` | 否 | 注册 PIN，默认 `123456`（别名：`GOPAY_DEFAULT_PIN`） |
 | `GOPAY_SIGNUP_COUNTRY_CODE` | 否 | 国家码，默认 `+62`（别名：`GOPAY_COUNTRY_CODE`） |
-| `HERO_SMS_SERVICE` | 否 | 接码服务码，默认 `ni` |
-| `HERO_SMS_COUNTRY` | 否 | 接码国家 ID，默认 `6`（印尼） |
-| `HERO_SMS_POLL_TIMEOUT_SEC` | 否 | 等码超时（秒），默认 `300` |
-| `HERO_SMS_ENABLED` | 否 | `true` / `false`，默认 `true` |
-| `GOPAY_REGISTER_RETRY` | 否 | 取号失败、号码已注册、限流等时换号重试次数，默认 `3`（别名 `GOPAY_NUMBER_RETRY`） |
+| `GRIZZLY_SMS_SERVICE` | 否 | 接码服务码，GoPay 默认 `ni` |
+| `GRIZZLY_SMS_COUNTRY` | 否 | 接码国家 ID，默认 `6`（印尼） |
+| `GRIZZLY_SMS_MAX_PRICE` | 否 | 最高出价（美元），默认 `0.045` |
+| `GRIZZLY_SMS_POLL_TIMEOUT_SEC` | 否 | 等码超时（秒），默认 `300` |
+| `GRIZZLY_SMS_ENABLED` | 否 | `true` / `false`，默认 `true` |
+| `GOPAY_REGISTER_RETRY` | 否 | 换号重试次数，默认 `3`（别名 `GOPAY_NUMBER_RETRY`） |
 | `GOPAY_API_PORT` | 否 | API 端口，默认 `28000` |
 
 一次性加载（zsh/bash）：
@@ -79,15 +80,18 @@ set +a
 或逐条 export：
 
 ```bash
-export HERO_SMS_API_KEY="你的key"
+export GRIZZLY_SMS_API_KEY="你的key"
 export GOPAY_PROXY="http://127.0.0.1:10808"
 export GOPAY_SIGNUP_PIN="123456"
 export GOPAY_SIGNUP_COUNTRY_CODE="+62"
+export GRIZZLY_SMS_SERVICE=ni
+export GRIZZLY_SMS_COUNTRY=6
+export GRIZZLY_SMS_MAX_PRICE=0.045
 ```
 
 ### config.yaml（可选）
 
-用于红包开关、`hero_sms` 的 `service` / `country` 等非敏感项。未设置环境变量时，仍可从 yaml 回退读取 `api_key`、`proxy`、`signup`（不推荐把密钥写在文件里）。
+用于红包开关、`grizzly_sms` 的 `service` / `country` 等非敏感项。未设置环境变量时，仍可从 yaml 回退（不推荐把密钥写在文件里）。
 
 ### 红包配置（仅 yaml）
 
@@ -181,7 +185,7 @@ Step 4: 领取红包
 
 - ⚠️ **不要泄露 API Key**：`config.yaml` 包含敏感信息，请勿提交到公开仓库
 - ⚠️ **代理质量**：使用低质量代理可能触发 WAF 封禁
-- ⚠️ **接码成本**：hero-sms 按次收费，建议充值后使用
+- ⚠️ **接码成本**：GrizzlySMS 按次收费，建议充值后使用
 
 ### 常见问题
 
@@ -189,7 +193,7 @@ Step 4: 领取红包
 A: 代理 IP 被标记，切换到其他印尼代理重试。
 
 **Q: SMS 验证码超时？**  
-A: 增加 `poll_timeout_sec` 或检查 hero-sms 余额。
+A: 增加 `GRIZZLY_SMS_POLL_TIMEOUT_SEC` 或检查 GrizzlySMS 余额。
 
 **Q: 红包领取失败？**  
 A: 检查短链是否有效，或红包是否已领完。

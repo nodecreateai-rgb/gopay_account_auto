@@ -20,11 +20,15 @@ def main() -> None:
 
     print(f"使用代理: {settings['proxy']}")
     print(f"红包配置: enabled={settings['festival_enabled']}")
-    print(f"hero-sms: enabled={settings['hero_enabled']}")
+    print(f"GrizzlySMS: enabled={settings['sms_enabled']}")
+    print(
+        f"sms: service={settings['sms_service']} country={settings['sms_country']} "
+        f"maxPrice={settings['sms_max_price']}"
+    )
     print(f"signup: pin=****** country={settings['country_code']}")
 
-    if not settings["hero_enabled"]:
-        print("\n[跳过] hero-sms 未启用，无法自动取号")
+    if not settings["sms_enabled"]:
+        print("\n[跳过] GrizzlySMS 未启用，无法自动取号")
         sys.exit(0)
 
     result = run_gopay_register(settings, log=print)
