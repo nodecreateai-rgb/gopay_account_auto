@@ -28,6 +28,24 @@ def _env(*names: str) -> str:
     return ""
 
 
+def _safe_int(value: Any, default: int) -> int:
+    try:
+        if value is None or str(value).strip() == "":
+            return default
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return default
+
+
+def _mask_secret(value: str, show: int = 4) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if len(text) <= show * 2:
+        return "*" * len(text)
+    return f"{text[:show]}...{text[-show:]}"
+
+
 def _require(value: str, label: str, env_names: tuple[str, ...]) -> str:
     if value:
         return value
@@ -102,21 +120,67 @@ def load_settings(root_dir: Path | None = None) -> dict[str, Any]:
         "sms_enabled": bool(sms_enabled),
         "sms_service": _env("GRIZZLY_SMS_SERVICE", "GOPAY_SMS_SERVICE")
         or str(sms_cfg.get("service") or DEFAULT_SMS_SERVICE),
-        "sms_country": int(
-            _env("GRIZZLY_SMS_COUNTRY", "GOPAY_SMS_COUNTRY")
-            or sms_cfg.get("country")
-            or DEFAULT_SMS_COUNTRY
+        "sms_country": _safe_int(
+            _env("GRIZZLY_SMS_COUNTRY", "GOPAY_SMS_COUNTRY") or sms_cfg.get("country"),
+            DEFAULT_SMS_COUNTRY,
         ),
         "sms_max_price": sms_max_price,
-        "sms_timeout": int(
-            _env("GRIZZLY_SMS_POLL_TIMEOUT_SEC", "GRIZZLY_SMS_WAIT_SECONDS", "GOPAY_SMS_POLL_TIMEOUT_SEC")
-            or sms_cfg.get("poll_timeout_sec")
-            or 300
+        "sms_timeout": _safe_int(
+            _env(
+                "GRIZZLY_SMS_POLL_TIMEOUT_SEC",
+                "GRIZZLY_SMS_WAIT_SECONDS",
+                "GOPAY_SMS_POLL_TIMEOUT_SEC",
+            )
+            or sms_cfg.get("poll_timeout_sec"),
+            300,
         ),
         "signup_pin": signup_pin,
         "country_code": country_code,
         "festival_cfg": festival_cfg,
         "festival_enabled": bool(festival_cfg.get("enabled"))
         and bool(str(festival_cfg.get("short_link") or "").strip()),
-        "config_path": config_path,
+        "config_path": str(config_path),
+    }
+
+
+def settings_preview(root_dir: Path | None = None) -> dict[str, Any]:
+    """供 /config 使用：检查必填项是否就绪（不返回完整密钥）。"""
+    missing: list[str] = []
+    root = root_dir or Path(__file__).resolve().parents[1]
+    config_path = root / "config.yaml"
+
+    loaded: dict[str, Any] = {}
+    if config_path.exists():
+        with open(config_path, encoding="utf-8") as f:
+            raw = yaml.safe_load(f)
+        loaded = raw if isinstance(raw, dict) else {}
+
+    grizzly_key = _env("GRIZZLY_SMS_API_KEY", "CPA_GRIZZLY_SMS_API_KEY")
+    sms_cfg = loaded.get("grizzly_sms") or loaded.get("hero_sms") or {}
+    yaml_key = str(sms_cfg.get("api_key") or "").strip()
+    yaml_proxy = str(loaded.get("proxy") or "").strip()
+
+    if not grizzly_key and not yaml_key:
+        missing.append("GRIZZLY_SMS_API_KEY")
+    if not _env("GOPAY_PROXY", "PROXY") and not yaml_proxy:
+        missing.append("GOPAY_PROXY")
+
+    settings: dict[str, Any] = {}
+    try:
+        settings = load_settings(root)
+    except ConfigError as e:
+        missing.append(str(e))
+
+    return {
+        "ready": not missing,
+        "missing": list(dict.fromkeys(missing)),
+        "sms_provider": "grizzly_sms",
+        "grizzly_api_key": _mask_secret(grizzly_key or yaml_key or str(settings.get("sms_api_key") or "")),
+        "proxy": settings.get("proxy") or _env("GOPAY_PROXY", "PROXY") or yaml_proxy or "(未设置)",
+        "sms_service": settings.get("sms_service", DEFAULT_SMS_SERVICE),
+        "sms_country": settings.get("sms_country", DEFAULT_SMS_COUNTRY),
+        "sms_max_price": settings.get("sms_max_price", DEFAULT_SMS_MAX_PRICE),
+        "sms_enabled": settings.get("sms_enabled", True),
+        "register_retry": settings.get("register_retry", DEFAULT_REGISTER_RETRY),
+        "config_yaml": str(config_path) if config_path.exists() else None,
     }

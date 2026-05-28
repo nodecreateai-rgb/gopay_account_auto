@@ -15,8 +15,11 @@
 
 ```text
 https://你的域名/health
+https://你的域名/config    # 检查环境变量是否配齐
 https://你的域名/register
 ```
+
+若 `/register` 失败，响应体 JSON 里会有 `error` 字段（业务失败也返回 200 + `ok:false`，不再是空 500）。
 
 ## 方式二：IP + 端口访问
 
