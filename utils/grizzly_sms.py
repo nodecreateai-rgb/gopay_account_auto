@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_HANDLER_URL = "https://api.grizzlysms.com/stubs/handler_api.php"
 DEFAULT_OPERATOR = "any"
-DEFAULT_MAX_PRICE = "0.045"
+DEFAULT_MAX_PRICE = "0.06"
 
 STATUS_READY = 1
 STATUS_CANCEL = 8

@@ -46,7 +46,7 @@ STATUS_FINISH = 6      # 完成（确认收到码）
 POLL_INTERVAL_SEC = 3.0
 RESEND_AFTER_SEC = 60
 DEFAULT_OPERATOR = "any"
-DEFAULT_MAX_PRICE = "0.045"  # GoPay 印尼 ni 固定出价
+DEFAULT_MAX_PRICE = "0.06"  # GoPay 印尼 ni 默认最高出价（美元）
 
 _FATAL_ERRORS = frozenset(
     {

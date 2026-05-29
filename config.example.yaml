@@ -11,7 +11,7 @@ hero_sms:
   country: 6
   service: "ni"
   poll_timeout_sec: 300
-  max_price: "0.045"
+  max_price: "0.06"
 
 # GrizzlySMS（仅当 SMS_PROVIDER=grizzly_sms 时使用）
 # grizzly_sms:
@@ -20,7 +20,7 @@ hero_sms:
 #   country: 6
 #   service: "ni"
 #   poll_timeout_sec: 300
-#   max_price: "0.045"
+#   max_price: "0.06"
 
 # 代理：GOPAY_PROXY 或 PROXY
 

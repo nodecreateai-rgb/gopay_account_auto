@@ -65,7 +65,7 @@ cp .env.example .env
 | `GOPAY_SIGNUP_COUNTRY_CODE` | 否 | 国家码，默认 `+62` |
 | `HERO_SMS_SERVICE` / `GRIZZLY_SMS_SERVICE` | 否 | 默认 `ni` |
 | `HERO_SMS_COUNTRY` / `GRIZZLY_SMS_COUNTRY` | 否 | 默认 `6`（印尼） |
-| `HERO_SMS_MAX_PRICE` / `GRIZZLY_SMS_MAX_PRICE` | 否 | 默认 `0.045` |
+| `HERO_SMS_MAX_PRICE` / `GRIZZLY_SMS_MAX_PRICE` | 否 | 默认 `0.06` |
 | `HERO_SMS_POLL_TIMEOUT_SEC` / `GRIZZLY_SMS_POLL_TIMEOUT_SEC` | 否 | 等码超时（秒），默认 `300` |
 | `GOPAY_REGISTER_RETRY` | 否 | 换号重试，默认 `3` |
 | `GOPAY_API_PORT` | 否 | API 端口，默认 `28000` |
