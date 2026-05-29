@@ -43,7 +43,9 @@ http://服务器公网IP:28000/health
 |------|------|
 | `PORT` | 监听端口（部分平台注入，优先于 `GOPAY_API_PORT`） |
 | `GOPAY_API_PORT` | 默认 `28000` |
-| `GRIZZLY_SMS_API_KEY` | 必填 |
+| `HERO_SMS_API_KEY` | 默认 Hero-SMS 时必填 |
+| `SMS_PROVIDER` | 可选：`hero_sms`（默认）或 `grizzly_sms`；选 Grizzly 时填 `GRIZZLY_SMS_API_KEY` |
+| `GRIZZLY_SMS_API_KEY` | 仅 `SMS_PROVIDER=grizzly_sms` 时必填 |
 | `GOPAY_PROXY` | 必填，印尼 IP |
 
 ## 启动命令

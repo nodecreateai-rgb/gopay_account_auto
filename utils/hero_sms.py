@@ -1,5 +1,4 @@
-"""Hero-SMS 接码客户端（已弃用，请使用 utils.grizzly_sms）。
-
+"""Hero-SMS 接码客户端（handler 协议与 GrizzlySMS 同族）。
 
 核心功能：
 - get_number: 购买号码
@@ -22,6 +21,21 @@ except ImportError:
     _CurlCffiAvailable = False
 
 logger = logging.getLogger(__name__)
+
+_GOPAY_OTP_RE = re.compile(r"\b(\d{6})\b")
+
+
+def _extract_otp(value: str) -> str:
+    text = str(value or "").strip()
+    if text.upper().startswith("STATUS_OK:"):
+        text = text.split(":", 1)[1].strip()
+    matches = _GOPAY_OTP_RE.findall(text)
+    if matches:
+        return matches[-1]
+    digits = re.sub(r"\D", "", text)
+    if len(digits) >= 6:
+        return digits[-6:]
+    return ""
 
 # 状态常量
 STATUS_READY = 1       # 标记就绪（准备接码）
@@ -145,15 +159,17 @@ def get_number(
     country_id: int,
     base_url: str,
     api_key: str,
+    max_price: str | None = None,
     log: Callable[[str], None] = logger.info,
 ) -> tuple[str, str, str]:
     """购买号码
 
     返回: (activation_id, phone, error)
     """
+    mp = str(max_price or DEFAULT_MAX_PRICE).strip()
     log(
         f"[hero-sms] getNumber service={service_code} country={country_id} "
-        f"operator={DEFAULT_OPERATOR} maxPrice={DEFAULT_MAX_PRICE}"
+        f"operator={DEFAULT_OPERATOR} maxPrice={mp}"
     )
     ok, text, data = _request(
         base_url,
@@ -163,7 +179,7 @@ def get_number(
             "service": service_code,
             "country": country_id,
             "operator": DEFAULT_OPERATOR,
-            "maxPrice": DEFAULT_MAX_PRICE,
+            "maxPrice": mp,
         },
         timeout=30,
     )
@@ -278,12 +294,18 @@ class SmsActivation:
                 continue
 
             line = str(text or "").strip()
+            upper = line.upper()
             code = ""
 
-            if line.upper().startswith("STATUS_OK:"):
-                code = line.split(":", 1)[1].strip()
+            if upper.startswith("STATUS_OK:"):
+                code = _extract_otp(line)
             elif isinstance(data, dict):
-                code = str(data.get("code") or data.get("sms") or "")
+                raw = str(data.get("code") or data.get("sms") or "")
+                code = _extract_otp(raw) or raw.strip()
+
+            if upper.startswith("STATUS_WAIT") or upper == "STATUS_WAIT_CODE":
+                time.sleep(POLL_INTERVAL_SEC)
+                continue
 
             if code and code not in self.used_codes:
                 self.used_codes.add(code)

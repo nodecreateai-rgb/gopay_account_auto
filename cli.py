@@ -19,10 +19,10 @@ def main() -> None:
         sys.exit(1)
 
     print(f"使用代理: {settings['proxy']}")
-    print(f"GrizzlySMS: enabled={settings['sms_enabled']}")
+    print(f"接码: {settings.get('sms_provider', 'hero_sms')} enabled={settings['sms_enabled']}")
 
     if not settings["sms_enabled"]:
-        print("\n[跳过] GrizzlySMS 未启用")
+        print("\n[跳过] 接码未启用")
         sys.exit(0)
 
     result = run_gopay_register(settings, log=print)

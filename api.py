@@ -27,8 +27,8 @@ logger = logging.getLogger("gopay-api")
 
 app = FastAPI(
     title="GoPay Account Auto API",
-    description="GET /register 触发 GrizzlySMS 取号并注册 GoPay；启动时不自动注册",
-    version="1.0.2",
+    description="GET /register 触发接码（默认 Hero-SMS）并注册 GoPay；启动时不自动注册",
+    version="1.0.3",
 )
 
 
@@ -83,10 +83,11 @@ def register_gopay() -> JSONResponse:
         )
 
     if not settings["sms_enabled"]:
-        raise HTTPException(status_code=400, detail="GrizzlySMS 未启用")
+        raise HTTPException(status_code=400, detail="接码服务未启用")
 
     logger.info(
-        "register start proxy=%s service=%s country=%s",
+        "register start provider=%s proxy=%s service=%s country=%s",
+        settings.get("sms_provider"),
         settings["proxy"],
         settings["sms_service"],
         settings["sms_country"],
